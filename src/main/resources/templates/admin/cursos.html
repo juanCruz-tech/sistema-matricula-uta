@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragmentos/base :: cabeza('Cursos y cupos')}"></head>
+<body>
+<header th:replace="~{fragmentos/base :: barra('cursos')}"></header>
+<main>
+    <h1>Cursos y cupos · <span th:text="${periodo.codigo}">2027-1</span></h1>
+    <p class="subtitulo">Ocupación en tiempo real de la oferta del periodo abierto.</p>
+    <th:block th:replace="~{fragmentos/base :: alertas}"></th:block>
+
+    <div class="tarjetas-mini">
+        <div class="mini"><small>Cursos ofertados</small><strong th:text="${cursos.size()}">0</strong></div>
+        <div class="mini"><small>Cupos totales</small><strong th:text="${totalCupos}">0</strong></div>
+        <div class="mini"><small>Cupos ocupados</small><strong th:text="${ocupados}">0</strong></div>
+    </div>
+
+    <div class="tarjeta">
+        <table>
+            <thead><tr><th>Código</th><th>Asignatura</th><th>Grupo</th><th>Docente</th><th>Ocupación</th><th>Disponibles</th><th>Cupo máximo</th></tr></thead>
+            <tbody>
+            <tr th:each="c : ${cursos}" th:with="ocup=${c.cupoMaximo - c.cuposDisponibles}">
+                <td th:text="${c.asignatura.codigo}">IS-301</td>
+                <td th:text="${c.asignatura.nombre}">Asignatura</td>
+                <td th:text="${c.grupo}">1</td>
+                <td class="horario-celda" th:text="${c.docente}">Docente</td>
+                <td>
+                    <div class="barra-cupo"><div th:style="|width:${ocup * 100 / c.cupoMaximo}%|"></div></div>
+                    <span class="horario-celda" th:text="${ocup} + ' de ' + ${c.cupoMaximo}">0 de 30</span>
+                </td>
+                <td><span class="chip" th:classappend="${c.cuposDisponibles == 0} ? 'no' : (${c.cuposDisponibles <= 3} ? 'poco' : 'ok')"
+                          th:text="${c.cuposDisponibles}">30</span></td>
+                <td>
+                    <form class="en-linea" th:action="@{/admin/cursos/{id}/cupo(id=${c.id})}" method="post">
+                        <input type="number" name="cupoMaximo" min="1" th:value="${c.cupoMaximo}">
+                        <button class="boton secundario" type="submit" style="padding:6px 10px">Guardar</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

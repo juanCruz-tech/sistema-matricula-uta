@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragmentos/base :: cabeza('Oferta de cursos')}"></head>
+<body>
+<header th:replace="~{fragmentos/base :: barra('oferta')}"></header>
+<main>
+    <h1>Oferta de cursos <span th:text="${periodo.codigo}">2027-1</span></h1>
+    <p class="subtitulo" th:text="${estudiante}">Estudiante</p>
+    <th:block th:replace="~{fragmentos/base :: alertas}"></th:block>
+
+    <div class="alerta aviso" th:if="${matriculaActiva != null}">
+        Ya tienes una matrícula en estado
+        <b th:text="${matriculaActiva.estado == T(co.edu.uta.matricula.dominio.EstadoMatricula).CONFIRMADA ? 'confirmada' : 'pendiente de pago'}"></b>.
+        <a th:href="@{/estudiante/matricula}">Ver mi matrícula</a>
+    </div>
+
+    <form th:action="@{/estudiante/matricula}" method="post" class="tarjeta" id="formSeleccion">
+        <table>
+            <thead>
+            <tr>
+                <th></th><th>Asignatura</th><th>Grupo</th><th>Créditos</th><th>Horario</th><th>Docente</th><th>Cupos</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${cursos}" th:classappend="${c.cuposDisponibles == 0} ? 'deshabilitado'">
+                <td>
+                    <input type="checkbox" name="cursoIds" th:value="${c.id}" th:attr="data-creditos=${c.asignatura.creditos}"
+                           th:checked="${#lists.contains(seleccion, c.id)}"
+                           th:disabled="${c.cuposDisponibles == 0 or matriculaActiva != null}">
+                </td>
+                <td><b th:text="${c.asignatura.nombre}">Asignatura</b><br>
+                    <span class="horario-celda" th:text="${c.asignatura.codigo}">IS-301</span></td>
+                <td th:text="${c.grupo}">1</td>
+                <td th:text="${c.asignatura.creditos}">3</td>
+                <td class="horario-celda">
+                    <div th:each="f : ${c.franjas}" th:text="${f.descripcion()}">Lunes 7:00–9:00</div>
+                </td>
+                <td class="horario-celda" th:text="${c.docente}">Docente</td>
+                <td>
+                    <span class="chip no" th:if="${c.cuposDisponibles == 0}">Sin cupo</span>
+                    <span class="chip poco" th:if="${c.cuposDisponibles > 0 and c.cuposDisponibles <= 3}"
+                          th:text="${c.cuposDisponibles == 1 ? 'Último cupo' : c.cuposDisponibles + ' cupos'}">2</span>
+                    <span class="chip ok" th:if="${c.cuposDisponibles > 3}"
+                          th:text="${c.cuposDisponibles} + ' / ' + ${c.cupoMaximo}">20 / 30</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="pie-acciones">
+            <div class="resumen">Seleccionados: <b id="numCursos">0</b> cursos · <b id="numCreditos">0</b> créditos ·
+                Valor estimado: <b id="valor">$0</b></div>
+            <button class="boton" type="submit" th:disabled="${matriculaActiva != null}">Reservar cupos e ir a pagar</button>
+        </div>
+    </form>
+</main>
+<script th:inline="javascript">
+    const valorCredito = /*[[${valorCredito}]]*/ 350000;
+    const checks = document.querySelectorAll('input[name=cursoIds]');
+    const formato = new Intl.NumberFormat('es-CO', {style: 'currency', currency: 'COP', maximumFractionDigits: 0});
+    function actualizar() {
+        let n = 0, cr = 0;
+        checks.forEach(c => { if (c.checked) { n++; cr += Number(c.dataset.creditos); } });
+        document.getElementById('numCursos').textContent = n;
+        document.getElementById('numCreditos').textContent = cr;
+        document.getElementById('valor').textContent = formato.format(cr * valorCredito);
+    }
+    checks.forEach(c => c.addEventListener('change', actualizar));
+    actualizar();
+</script>
+</body>
+</html>

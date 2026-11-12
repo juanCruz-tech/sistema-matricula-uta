@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="es">
+<head th:fragment="cabeza(titulo)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${titulo} + ' · Matrícula UTA'">Matrícula UTA</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header th:fragment="barra(activo)" class="barra">
+    <div class="marca">UTA <span>Matrícula</span></div>
+    <nav>
+        <th:block sec:authorize="hasRole('ESTUDIANTE')">
+            <a th:href="@{/estudiante/oferta}" th:classappend="${activo == 'oferta'} ? 'activo'">Oferta de cursos</a>
+            <a th:href="@{/estudiante/matricula}" th:classappend="${activo == 'matricula'} ? 'activo'">Mi matrícula</a>
+            <a th:href="@{/estudiante/horario}" th:classappend="${activo == 'horario'} ? 'activo'">Mi horario</a>
+        </th:block>
+        <th:block sec:authorize="hasRole('ADMINISTRADOR')">
+            <a th:href="@{/admin/cursos}" th:classappend="${activo == 'cursos'} ? 'activo'">Cursos y cupos</a>
+            <a th:href="@{/admin/reportes}" th:classappend="${activo == 'reportes'} ? 'activo'">Reportes</a>
+        </th:block>
+    </nav>
+    <div class="usuario">
+        <span sec:authentication="name">usuario</span>
+        <form th:action="@{/logout}" method="post"><button type="submit">Salir</button></form>
+    </div>
+</header>
+
+<th:block th:fragment="alertas">
+    <div class="alerta ok" th:if="${ok}" th:text="${ok}"></div>
+    <div class="alerta error" th:if="${error}" th:text="${error}"></div>
+    <div class="alerta aviso" th:if="${aviso}" th:text="${aviso}"></div>
+</th:block>
+</body>
+</html>

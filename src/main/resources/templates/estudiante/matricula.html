@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragmentos/base :: cabeza('Mi matrícula')}"></head>
+<body>
+<header th:replace="~{fragmentos/base :: barra('matricula')}"></header>
+<main th:with="E=${T(co.edu.uta.matricula.dominio.EstadoMatricula)}">
+    <h1>Mi matrícula</h1>
+    <p class="subtitulo" th:text="${estudiante}">Estudiante</p>
+    <th:block th:replace="~{fragmentos/base :: alertas}"></th:block>
+
+    <div class="tarjeta" th:if="${matricula == null}">
+        <p>Todavía no tienes una matrícula en este periodo.</p>
+        <a class="boton" th:href="@{/estudiante/oferta}">Ver la oferta de cursos</a>
+    </div>
+
+    <th:block th:if="${matricula != null}" th:with="m=${matricula}">
+        <div class="pasos">
+            <div class="paso hecho">1. Selección de cursos</div>
+            <div class="paso" th:classappend="${m.estado == E.PENDIENTE_PAGO} ? 'actual' : (${m.estado == E.CONFIRMADA} ? 'hecho' : '')">
+                2. Cupos reservados · pendiente de pago</div>
+            <div class="paso" th:if="${m.estado != E.ANULADA}" th:classappend="${m.estado == E.CONFIRMADA} ? 'hecho'">3. Confirmada</div>
+            <div class="paso anulado" th:if="${m.estado == E.ANULADA}">Anulada</div>
+        </div>
+
+        <div class="tarjeta">
+            <div class="datos">
+                <div class="dato"><small>Estado</small>
+                    <span class="chip info" th:if="${m.estado == E.PENDIENTE_PAGO}">Pendiente de pago</span>
+                    <span class="chip ok" th:if="${m.estado == E.CONFIRMADA}">Confirmada</span>
+                    <span class="chip no" th:if="${m.estado == E.ANULADA}">Anulada</span>
+                </div>
+                <div class="dato"><small>Créditos</small><strong th:text="${m.calcularCreditos()}">0</strong></div>
+                <div class="dato" th:if="${m.pago != null}"><small>Valor</small>
+                    <strong th:text="${'$' + #numbers.formatDecimal(m.pago.valor, 1, 'POINT', 0, 'COMMA')}">$0</strong></div>
+                <div class="dato" th:if="${m.pago != null}"><small>Referencia de pago</small>
+                    <strong th:text="${m.pago.referencia}">REF</strong></div>
+                <div class="dato" th:if="${m.comprobante != null}"><small>Comprobante</small>
+                    <strong th:text="${m.comprobante.numero}">UTA</strong></div>
+                <div class="dato" th:if="${m.estado == E.ANULADA}"><small>Motivo</small>
+                    <strong th:text="${m.motivoAnulacion}">Motivo</strong></div>
+            </div>
+
+            <p class="resumen" th:if="${m.estado == E.PENDIENTE_PAGO}">
+                Tus cupos quedan reservados durante <b th:text="${minutosEspera}">15</b> minutos desde
+                <span th:text="${#temporals.format(m.fechaReserva, 'HH:mm')}">10:00</span>.
+                Si el pago no se confirma en ese tiempo, la matrícula se anula y los cupos se liberan.
+            </p>
+
+            <table>
+                <thead><tr><th>Asignatura</th><th>Grupo</th><th>Créditos</th><th>Horario</th><th>Estado</th></tr></thead>
+                <tbody>
+                <tr th:each="d : ${m.detalles}">
+                    <td th:text="${d.curso.asignatura.nombre}">Asignatura</td>
+                    <td th:text="${d.curso.grupo}">1</td>
+                    <td th:text="${d.curso.asignatura.creditos}">3</td>
+                    <td class="horario-celda" th:text="${d.curso.horarioTexto()}">Horario</td>
+                    <td><span class="chip" th:classappend="${d.estaInscrito()} ? 'ok' : 'no'"
+                              th:text="${d.estaInscrito()} ? 'Inscrito' : 'Anulado'">Inscrito</span></td>
+                </tr>
+                </tbody>
+            </table>
+
+            <div class="pie-acciones">
+                <div style="display:flex; gap:10px; flex-wrap:wrap">
+                    <form th:if="${m.estado == E.PENDIENTE_PAGO}" th:action="@{/estudiante/matricula/{id}/pagar(id=${m.id})}" method="post">
+                        <button class="boton verde" type="submit">Pagar en la pasarela</button>
+                    </form>
+                    <a th:if="${m.estado == E.PENDIENTE_PAGO}" class="boton secundario"
+                       th:href="@{/estudiante/matricula/{id}/retorno-pago(id=${m.id})}">Ya pagué: verificar pago</a>
+                    <a th:if="${m.estado == E.CONFIRMADA}" class="boton"
+                       th:href="@{/estudiante/matricula/{id}/comprobante.pdf(id=${m.id})}" target="_blank">Descargar comprobante (PDF)</a>
+                    <a th:if="${m.estado == E.CONFIRMADA}" class="boton secundario" th:href="@{/estudiante/horario}">Ver mi horario</a>
+                    <a th:if="${m.estado == E.ANULADA}" class="boton" th:href="@{/estudiante/oferta}">Volver a seleccionar cursos</a>
+                </div>
+                <form th:if="${m.estado == E.PENDIENTE_PAGO}" th:action="@{/estudiante/matricula/{id}/cancelar(id=${m.id})}" method="post">
+                    <button class="boton peligro" type="submit">Cancelar y liberar cupos</button>
+                </form>
+            </div>
+        </div>
+    </th:block>
+</main>
+</body>
+</html>

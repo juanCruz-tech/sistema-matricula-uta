@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragmentos/base :: cabeza('Reportes')}"></head>
+<body>
+<header th:replace="~{fragmentos/base :: barra('reportes')}"></header>
+<main>
+    <h1>Reporte de matriculados · <span th:text="${reporte.periodo()}">2027-1</span></h1>
+    <p class="subtitulo">Estudiantes con matrícula confirmada, filtrables por facultad y programa (RF-05).</p>
+
+    <form class="tarjeta filtros" th:action="@{/admin/reportes}" method="get">
+        <div class="campo" style="margin:0">
+            <label for="facultadId">Facultad</label>
+            <select id="facultadId" name="facultadId">
+                <option value="">Todas</option>
+                <option th:each="f : ${facultades}" th:value="${f.id}" th:text="${f.nombre}" th:selected="${f.id == facultadId}"></option>
+            </select>
+        </div>
+        <div class="campo" style="margin:0">
+            <label for="programaId">Programa</label>
+            <select id="programaId" name="programaId">
+                <option value="">Todos</option>
+                <option th:each="p : ${programas}" th:value="${p.id}" th:text="${p.nombre}" th:selected="${p.id == programaId}"></option>
+            </select>
+        </div>
+        <button class="boton" type="submit">Filtrar</button>
+        <a class="boton secundario" target="_blank"
+           th:href="@{/admin/reportes.pdf(facultadId=${facultadId}, programaId=${programaId})}">Exportar PDF</a>
+        <span class="resumen">Generado en <b th:text="${ms}">0</b> ms</span>
+    </form>
+
+    <div class="tarjetas-mini">
+        <div class="mini"><small>Total matriculados</small><strong th:text="${reporte.filas().size()}">0</strong></div>
+        <div class="mini" th:each="e : ${reporte.porFacultad()}">
+            <small th:text="${e.key}">Facultad</small><strong th:text="${e.value}">0</strong>
+        </div>
+    </div>
+
+    <div class="tarjeta">
+        <table>
+            <thead><tr><th>Facultad</th><th>Programa</th><th>Código</th><th>Estudiante</th><th>Cursos</th><th>Créditos</th><th>Comprobante</th></tr></thead>
+            <tbody>
+            <tr th:each="f : ${reporte.filas()}">
+                <td th:text="${f.facultad()}"></td>
+                <td th:text="${f.programa()}"></td>
+                <td th:text="${f.codigo()}"></td>
+                <td th:text="${f.estudiante()}"></td>
+                <td th:text="${f.cursos()}"></td>
+                <td th:text="${f.creditos()}"></td>
+                <td th:text="${f.comprobante()}"></td>
+            </tr>
+            <tr th:if="${reporte.filas().isEmpty()}"><td colspan="7">No hay matrículas confirmadas con ese filtro.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

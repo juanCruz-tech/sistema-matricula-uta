@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragmentos/base :: cabeza('Mi horario')}"></head>
+<body>
+<header th:replace="~{fragmentos/base :: barra('horario')}"></header>
+<main>
+    <h1>Mi horario</h1>
+    <p class="subtitulo" th:text="${estudiante}">Estudiante</p>
+
+    <div class="tarjeta" th:unless="${horario.confirmado()}">
+        <p>El horario aparece cuando tu matrícula está confirmada (pago aprobado).</p>
+        <a class="boton" th:href="@{/estudiante/matricula}">Ver mi matrícula</a>
+    </div>
+
+    <th:block th:if="${horario.confirmado()}">
+        <p class="resumen"><b th:text="${horario.bloques().size()}">0</b> bloques de clase ·
+            <b th:text="${horario.creditos()}">0</b> créditos</p>
+        <div class="semana">
+            <div class="cabecera">Hora</div>
+            <div class="cabecera" th:each="d : ${dias}" th:text="${d.etiqueta}">Lunes</div>
+            <div class="horas">
+                <div th:each="h : ${#numbers.sequence(7, 21)}" th:style="|top:${(h - 7) * 44}px|" th:text="${h} + ':00'">7:00</div>
+            </div>
+            <div class="dia" th:each="d : ${dias}">
+                <div class="bloque" th:each="b : ${horario.delDia(d)}"
+                     th:style="|top:${(b.inicio().hour - 7) * 44 + b.inicio().minute * 44 / 60}px; height:${(b.fin().hour * 60 + b.fin().minute - b.inicio().hour * 60 - b.inicio().minute) * 44 / 60 - 2}px|">
+                    <b th:text="${b.asignatura()}">Asignatura</b>
+                    <span th:text="'G' + ${b.grupo()} + ' · ' + ${b.aula()}">G1 · Aula</span><br>
+                    <span th:text="${b.inicio()} + '–' + ${b.fin()}">7:00–9:00</span>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</main>
+</body>
+</html>

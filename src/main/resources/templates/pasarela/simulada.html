@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pasarela de pagos (simulada)</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="pasarela">
+    <div class="pasarela-caja">
+        <header>
+            <div style="font-weight:700; font-size:18px">Pasarela de pagos</div>
+            <small>Entorno simulado del prototipo · no se realiza ningún cobro real</small>
+        </header>
+        <div class="cuerpo">
+            <div class="alerta error" th:if="${orden == null}">La orden de pago no existe.</div>
+            <th:block th:if="${orden != null}">
+                <div class="datos">
+                    <div class="dato"><small>Referencia</small><strong th:text="${referencia}">REF</strong></div>
+                    <div class="dato"><small>Valor a pagar</small>
+                        <strong th:text="${'$' + #numbers.formatDecimal(orden.valor(), 1, 'POINT', 0, 'COMMA')}">$0</strong></div>
+                </div>
+                <p class="resumen" th:text="${orden.descripcion()}">Descripción</p>
+                <p class="resumen">Para la demostración, elige el resultado que devolverá la pasarela:</p>
+                <div style="display:flex; gap:10px">
+                    <form th:action="@{/pasarela-simulada/{r}(r=${referencia})}" method="post" style="flex:1">
+                        <input type="hidden" name="aprobado" value="true">
+                        <input type="hidden" name="retorno" th:value="${retorno}">
+                        <button class="boton verde" type="submit" style="width:100%">Aprobar pago</button>
+                    </form>
+                    <form th:action="@{/pasarela-simulada/{r}(r=${referencia})}" method="post" style="flex:1">
+                        <input type="hidden" name="aprobado" value="false">
+                        <input type="hidden" name="retorno" th:value="${retorno}">
+                        <button class="boton peligro" type="submit" style="width:100%">Rechazar pago</button>
+                    </form>
+                </div>
+            </th:block>
+        </div>
+    </div>
+</div>
+</body>
+</html>
