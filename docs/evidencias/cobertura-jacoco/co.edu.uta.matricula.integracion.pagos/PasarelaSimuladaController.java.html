@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PasarelaSimuladaController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.integracion.pagos</a> &gt; <span class="el_source">PasarelaSimuladaController.java</span></div><h1>PasarelaSimuladaController.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.integracion.pagos;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * Pantalla de la pasarela simulada. Representa el sitio externo del banco: el usuario decide
+ * si el pago se aprueba o se rechaza y vuelve al sistema de matrícula.
+ */
+@Controller
+@RequestMapping(&quot;/pasarela-simulada&quot;)
+public class PasarelaSimuladaController {
+
+    private final PasarelaSimulada pasarela;
+
+<span class="fc" id="L17">    public PasarelaSimuladaController(PasarelaSimulada pasarela) {</span>
+<span class="fc" id="L18">        this.pasarela = pasarela;</span>
+<span class="fc" id="L19">    }</span>
+
+    @GetMapping(&quot;/{referencia}&quot;)
+    public String pantalla(@PathVariable String referencia, @RequestParam String retorno, Model model) {
+<span class="nc" id="L23">        model.addAttribute(&quot;referencia&quot;, referencia);</span>
+<span class="nc" id="L24">        model.addAttribute(&quot;orden&quot;, pasarela.consultarOrden(referencia));</span>
+<span class="nc" id="L25">        model.addAttribute(&quot;retorno&quot;, retornoSeguro(retorno));</span>
+<span class="nc" id="L26">        return &quot;pasarela/simulada&quot;;</span>
+    }
+
+    @PostMapping(&quot;/{referencia}&quot;)
+    public String responder(@PathVariable String referencia, @RequestParam boolean aprobado,
+                            @RequestParam String retorno) {
+<span class="nc" id="L32">        pasarela.responder(referencia, aprobado);</span>
+<span class="nc" id="L33">        return &quot;redirect:&quot; + retornoSeguro(retorno);</span>
+    }
+
+    /** Evita redirecciones abiertas: solo se permite volver a una ruta interna del estudiante. */
+    private static String retornoSeguro(String retorno) {
+<span class="nc bnc" id="L38" title="All 6 branches missed.">        return retorno != null &amp;&amp; retorno.startsWith(&quot;/estudiante/&quot;) &amp;&amp; !retorno.contains(&quot;//&quot;)</span>
+<span class="nc" id="L39">                ? retorno : &quot;/estudiante/matricula&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

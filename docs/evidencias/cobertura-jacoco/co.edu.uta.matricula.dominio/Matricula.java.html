@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Matricula.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.dominio</a> &gt; <span class="el_source">Matricula.java</span></div><h1>Matricula.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.dominio;
+
+import jakarta.persistence.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Clase central del sistema. Implementa la máquina de estados de la Figura 8 de la Fase 2:
+ * BORRADOR → PENDIENTE_PAGO → CONFIRMADA, con paso a ANULADA si el pago se rechaza,
+ * vence el tiempo de espera o el estudiante cancela.
+ */
+@Entity
+public class Matricula {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    private Estudiante estudiante;
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    private PeriodoAcademico periodo;
+
+    private LocalDateTime fechaRegistro;
+
+    /** Momento en que se reservaron los cupos; desde aquí corre el tiempo de espera del pago. */
+    private LocalDateTime fechaReserva;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private EstadoMatricula estado;
+
+    private int totalCreditos;
+
+    @Column(length = 200)
+    private String motivoAnulacion;
+
+<span class="fc" id="L43">    @OneToMany(mappedBy = &quot;matricula&quot;, cascade = CascadeType.ALL, orphanRemoval = true)</span>
+    private List&lt;DetalleMatricula&gt; detalles = new ArrayList&lt;&gt;();
+
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Pago pago;
+
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Comprobante comprobante;
+
+<span class="fc" id="L52">    protected Matricula() {</span>
+<span class="fc" id="L53">    }</span>
+
+<span class="fc" id="L55">    public Matricula(Estudiante estudiante, PeriodoAcademico periodo, LocalDateTime ahora) {</span>
+<span class="fc" id="L56">        this.estudiante = estudiante;</span>
+<span class="fc" id="L57">        this.periodo = periodo;</span>
+<span class="fc" id="L58">        this.fechaRegistro = ahora;</span>
+<span class="fc" id="L59">        this.estado = EstadoMatricula.BORRADOR;</span>
+<span class="fc" id="L60">    }</span>
+
+    /** Agrega un curso validando que no se repita la asignatura ni se cruce el horario. */
+    public void agregarCurso(Curso curso, LocalDateTime ahora) {
+<span class="fc" id="L64">        exigirEstado(EstadoMatricula.BORRADOR, &quot;agregar cursos&quot;);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        for (Curso inscrito : cursosInscritos()) {</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">            if (inscrito.getAsignatura().getCodigo().equals(curso.getAsignatura().getCodigo())) {</span>
+<span class="fc" id="L67">                throw new ReglaNegocioException(&quot;Ya seleccionaste un grupo de &quot; + curso.getAsignatura().getNombre() + &quot;.&quot;);</span>
+            }
+<span class="fc bfc" id="L69" title="All 2 branches covered.">            if (inscrito.seCruzaCon(curso)) {</span>
+<span class="fc" id="L70">                throw new ReglaNegocioException(&quot;Cruce de horario: &quot; + curso.nombreCompleto()</span>
+<span class="fc" id="L71">                        + &quot; se cruza con &quot; + inscrito.nombreCompleto() + &quot;.&quot;);</span>
+            }
+<span class="fc" id="L73">        }</span>
+<span class="fc" id="L74">        detalles.add(new DetalleMatricula(this, curso, ahora));</span>
+<span class="fc" id="L75">        totalCreditos = calcularCreditos();</span>
+<span class="fc" id="L76">    }</span>
+
+    public void retirarCurso(Curso curso) {
+<span class="nc" id="L79">        exigirEstado(EstadoMatricula.BORRADOR, &quot;retirar cursos&quot;);</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        detalles.removeIf(d -&gt; d.getCurso() == curso</span>
+<span class="nc bnc" id="L81" title="All 4 branches missed.">                || (d.getCurso().getId() != null &amp;&amp; d.getCurso().getId().equals(curso.getId())));</span>
+<span class="nc" id="L82">        totalCreditos = calcularCreditos();</span>
+<span class="nc" id="L83">    }</span>
+
+    /** BORRADOR → PENDIENTE_PAGO. Los cupos ya fueron reservados por CupoService. */
+    public void confirmarSeleccion(LocalDateTime ahora) {
+<span class="fc" id="L87">        exigirEstado(EstadoMatricula.BORRADOR, &quot;confirmar la selección&quot;);</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (detalles.isEmpty()) {</span>
+<span class="fc" id="L89">            throw new ReglaNegocioException(&quot;Debes seleccionar al menos un curso.&quot;);</span>
+        }
+<span class="fc" id="L91">        this.estado = EstadoMatricula.PENDIENTE_PAGO;</span>
+<span class="fc" id="L92">        this.fechaReserva = ahora;</span>
+<span class="fc" id="L93">    }</span>
+
+    public void asociarPago(Pago pago) {
+<span class="fc" id="L96">        exigirEstado(EstadoMatricula.PENDIENTE_PAGO, &quot;asociar el pago&quot;);</span>
+<span class="fc" id="L97">        this.pago = pago;</span>
+<span class="fc" id="L98">    }</span>
+
+    /** PENDIENTE_PAGO → CONFIRMADA. Solo si la pasarela aprobó el pago. */
+    public void confirmar(Comprobante comprobante) {
+<span class="fc" id="L102">        exigirEstado(EstadoMatricula.PENDIENTE_PAGO, &quot;confirmar la matrícula&quot;);</span>
+<span class="pc bpc" id="L103" title="1 of 4 branches missed.">        if (pago == null || !pago.estaAprobado()) {</span>
+<span class="fc" id="L104">            throw new ReglaNegocioException(&quot;La matrícula no se puede confirmar sin un pago aprobado.&quot;);</span>
+        }
+<span class="fc" id="L106">        this.comprobante = comprobante;</span>
+<span class="fc" id="L107">        this.estado = EstadoMatricula.CONFIRMADA;</span>
+<span class="fc" id="L108">    }</span>
+
+    /**
+     * Pasa la matrícula a ANULADA y devuelve los cursos cuyos cupos deben liberarse.
+     * Se permite desde BORRADOR, PENDIENTE_PAGO o CONFIRMADA (retiro).
+     */
+    public List&lt;Curso&gt; anular(String motivo) {
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">        if (estado == EstadoMatricula.ANULADA) {</span>
+<span class="nc" id="L116">            throw new ReglaNegocioException(&quot;La matrícula ya está anulada.&quot;);</span>
+        }
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        boolean habiaReserva = estado != EstadoMatricula.BORRADOR;</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">        List&lt;Curso&gt; aLiberar = habiaReserva ? cursosInscritos() : List.of();</span>
+<span class="fc" id="L120">        detalles.forEach(DetalleMatricula::anular);</span>
+<span class="fc" id="L121">        this.estado = EstadoMatricula.ANULADA;</span>
+<span class="fc" id="L122">        this.motivoAnulacion = motivo;</span>
+<span class="fc" id="L123">        return aLiberar;</span>
+    }
+
+    /** True si lleva más de {@code minutos} esperando el pago (transición after(15 min)). */
+    public boolean estaVencida(LocalDateTime ahora, long minutos) {
+<span class="pc bpc" id="L128" title="2 of 4 branches missed.">        return estado == EstadoMatricula.PENDIENTE_PAGO</span>
+                &amp;&amp; fechaReserva != null
+<span class="fc bfc" id="L130" title="All 2 branches covered.">                &amp;&amp; fechaReserva.plusMinutes(minutos).isBefore(ahora);</span>
+    }
+
+    public int calcularCreditos() {
+<span class="fc" id="L134">        return detalles.stream().filter(DetalleMatricula::estaInscrito)</span>
+<span class="fc" id="L135">                .mapToInt(d -&gt; d.getCurso().getAsignatura().getCreditos()).sum();</span>
+    }
+
+    public BigDecimal calcularValor(BigDecimal valorCredito) {
+<span class="fc" id="L139">        return valorCredito.multiply(BigDecimal.valueOf(calcularCreditos()));</span>
+    }
+
+    public List&lt;Curso&gt; cursosInscritos() {
+<span class="fc" id="L143">        return detalles.stream().filter(DetalleMatricula::estaInscrito).map(DetalleMatricula::getCurso).toList();</span>
+    }
+
+    public boolean estaActiva() {
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        return estado != EstadoMatricula.ANULADA;</span>
+    }
+
+    private void exigirEstado(EstadoMatricula esperado, String accion) {
+<span class="pc bpc" id="L151" title="1 of 2 branches missed.">        if (estado != esperado) {</span>
+<span class="nc" id="L152">            throw new ReglaNegocioException(&quot;No se puede &quot; + accion + &quot; cuando la matrícula está en estado &quot; + estado + &quot;.&quot;);</span>
+        }
+<span class="fc" id="L154">    }</span>
+
+    public Long getId() {
+<span class="fc" id="L157">        return id;</span>
+    }
+
+    public Estudiante getEstudiante() {
+<span class="fc" id="L161">        return estudiante;</span>
+    }
+
+    public PeriodoAcademico getPeriodo() {
+<span class="fc" id="L165">        return periodo;</span>
+    }
+
+    public LocalDateTime getFechaRegistro() {
+<span class="nc" id="L169">        return fechaRegistro;</span>
+    }
+
+    public LocalDateTime getFechaReserva() {
+<span class="nc" id="L173">        return fechaReserva;</span>
+    }
+
+    public EstadoMatricula getEstado() {
+<span class="fc" id="L177">        return estado;</span>
+    }
+
+    public int getTotalCreditos() {
+<span class="nc" id="L181">        return totalCreditos;</span>
+    }
+
+    public String getMotivoAnulacion() {
+<span class="nc" id="L185">        return motivoAnulacion;</span>
+    }
+
+    public List&lt;DetalleMatricula&gt; getDetalles() {
+<span class="fc" id="L189">        return Collections.unmodifiableList(detalles);</span>
+    }
+
+    public Pago getPago() {
+<span class="fc" id="L193">        return pago;</span>
+    }
+
+    public Comprobante getComprobante() {
+<span class="fc" id="L197">        return comprobante;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

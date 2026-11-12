@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FranjaHoraria.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.dominio</a> &gt; <span class="el_source">FranjaHoraria.java</span></div><h1>FranjaHoraria.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.dominio;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+
+import java.time.LocalTime;
+import java.util.Objects;
+
+/**
+ * Un bloque de clase: día, hora de inicio, hora de fin y aula.
+ * Un Curso se compone de una o más franjas (composición en la Figura 4).
+ */
+@Embeddable
+public class FranjaHoraria {
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 12)
+    private DiaSemana dia;
+
+    private LocalTime horaInicio;
+
+    private LocalTime horaFin;
+
+    @Column(length = 20)
+    private String aula;
+
+<span class="fc" id="L29">    protected FranjaHoraria() {</span>
+<span class="fc" id="L30">    }</span>
+
+<span class="fc" id="L32">    public FranjaHoraria(DiaSemana dia, LocalTime horaInicio, LocalTime horaFin, String aula) {</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">        if (!horaInicio.isBefore(horaFin)) {</span>
+<span class="fc" id="L34">            throw new IllegalArgumentException(&quot;La hora de inicio debe ser anterior a la hora de fin&quot;);</span>
+        }
+<span class="fc" id="L36">        this.dia = dia;</span>
+<span class="fc" id="L37">        this.horaInicio = horaInicio;</span>
+<span class="fc" id="L38">        this.horaFin = horaFin;</span>
+<span class="fc" id="L39">        this.aula = aula;</span>
+<span class="fc" id="L40">    }</span>
+
+    /**
+     * Dos franjas se cruzan si son el mismo día y sus intervalos se solapan.
+     * Una clase que termina a las 9:00 no se cruza con otra que empieza a las 9:00.
+     */
+    public boolean seCruzaCon(FranjaHoraria otra) {
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        return dia == otra.dia</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">                &amp;&amp; horaInicio.isBefore(otra.horaFin)</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">                &amp;&amp; otra.horaInicio.isBefore(horaFin);</span>
+    }
+
+    public DiaSemana getDia() {
+<span class="fc" id="L53">        return dia;</span>
+    }
+
+    public LocalTime getHoraInicio() {
+<span class="fc" id="L57">        return horaInicio;</span>
+    }
+
+    public LocalTime getHoraFin() {
+<span class="fc" id="L61">        return horaFin;</span>
+    }
+
+    public String getAula() {
+<span class="fc" id="L65">        return aula;</span>
+    }
+
+    public String descripcion() {
+<span class="fc" id="L69">        return dia.getEtiqueta() + &quot; &quot; + horaInicio + &quot;–&quot; + horaFin + &quot; (&quot; + aula + &quot;)&quot;;</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        if (!(o instanceof FranjaHoraria f)) return false;</span>
+<span class="nc bnc" id="L76" title="All 4 branches missed.">        return dia == f.dia &amp;&amp; Objects.equals(horaInicio, f.horaInicio)</span>
+<span class="nc bnc" id="L77" title="All 4 branches missed.">                &amp;&amp; Objects.equals(horaFin, f.horaFin) &amp;&amp; Objects.equals(aula, f.aula);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L82">        return Objects.hash(dia, horaInicio, horaFin, aula);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

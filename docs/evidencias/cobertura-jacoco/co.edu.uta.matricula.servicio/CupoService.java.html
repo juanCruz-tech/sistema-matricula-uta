@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CupoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.servicio</a> &gt; <span class="el_source">CupoService.java</span></div><h1>CupoService.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.servicio;
+
+import co.edu.uta.matricula.dominio.Curso;
+import co.edu.uta.matricula.dominio.ReglaNegocioException;
+import co.edu.uta.matricula.persistencia.ICursoRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Única responsabilidad: los cupos (principio SRP). Reserva y libera cupos con operaciones
+ * atómicas en la base de datos para que nunca haya sobrecupo (RF-03).
+ */
+@Service
+public class CupoService {
+
+    private final ICursoRepository cursos;
+
+<span class="fc" id="L19">    public CupoService(ICursoRepository cursos) {</span>
+<span class="fc" id="L20">        this.cursos = cursos;</span>
+<span class="fc" id="L21">    }</span>
+
+    /** Reserva un cupo. Participa en la transacción de quien lo llama. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean reservar(Long cursoId) {
+<span class="fc bfc" id="L26" title="All 2 branches covered.">        return cursos.decrementarCupo(cursoId) == 1;</span>
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void liberar(Long cursoId) {
+<span class="fc" id="L31">        cursos.incrementarCupo(cursoId);</span>
+<span class="fc" id="L32">    }</span>
+
+    @Transactional(readOnly = true)
+    public int consultarDisponibles(Long cursoId) {
+<span class="nc" id="L36">        return cursos.findById(cursoId).map(Curso::getCuposDisponibles)</span>
+<span class="nc" id="L37">                .orElseThrow(() -&gt; new ReglaNegocioException(&quot;El curso no existe.&quot;));</span>
+    }
+
+    /** Ajuste del cupo máximo por el administrador, hecho de forma atómica en la base de datos. */
+    @Transactional
+    public Curso gestionarCupo(Long cursoId, int nuevoMaximo) {
+<span class="nc bnc" id="L43" title="All 2 branches missed.">        if (nuevoMaximo &lt; 1) {</span>
+<span class="nc" id="L44">            throw new ReglaNegocioException(&quot;El cupo máximo debe ser al menos 1.&quot;);</span>
+        }
+<span class="nc" id="L46">        Curso curso = cursos.findById(cursoId).orElseThrow(() -&gt; new ReglaNegocioException(&quot;El curso no existe.&quot;));</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (cursos.ajustarCupoMaximo(cursoId, nuevoMaximo) == 0) {</span>
+<span class="nc" id="L48">            int ocupados = curso.getCupoMaximo() - curso.getCuposDisponibles();</span>
+<span class="nc" id="L49">            throw new ReglaNegocioException(&quot;El nuevo cupo (&quot; + nuevoMaximo</span>
+                    + &quot;) es menor que los cupos ya ocupados (&quot; + ocupados + &quot;).&quot;);
+        }
+<span class="nc" id="L52">        return cursos.findById(cursoId).orElseThrow();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

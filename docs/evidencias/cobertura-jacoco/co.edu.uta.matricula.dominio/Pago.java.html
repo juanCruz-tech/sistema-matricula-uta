@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Pago.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.dominio</a> &gt; <span class="el_source">Pago.java</span></div><h1>Pago.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.dominio;
+
+import jakarta.persistence.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+/** Pago asociado a una matrícula. Su estado lo informa la pasarela de pagos (RF-04). */
+@Entity
+public class Pago {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 40)
+    private String referencia;
+
+    @Column(precision = 14, scale = 2)
+    private BigDecimal valor;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 12)
+    private EstadoPago estado;
+
+    private LocalDateTime fechaValidacion;
+
+<span class="fc" id="L28">    protected Pago() {</span>
+<span class="fc" id="L29">    }</span>
+
+<span class="fc" id="L31">    public Pago(String referencia, BigDecimal valor) {</span>
+<span class="fc" id="L32">        this.referencia = referencia;</span>
+<span class="fc" id="L33">        this.valor = valor;</span>
+<span class="fc" id="L34">        this.estado = EstadoPago.PENDIENTE;</span>
+<span class="fc" id="L35">    }</span>
+
+    public void registrarRespuesta(EstadoPago nuevoEstado, LocalDateTime fecha) {
+<span class="fc" id="L38">        this.estado = nuevoEstado;</span>
+<span class="fc" id="L39">        this.fechaValidacion = fecha;</span>
+<span class="fc" id="L40">    }</span>
+
+    public boolean estaAprobado() {
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        return estado == EstadoPago.APROBADO;</span>
+    }
+
+    public Long getId() {
+<span class="nc" id="L47">        return id;</span>
+    }
+
+    public String getReferencia() {
+<span class="fc" id="L51">        return referencia;</span>
+    }
+
+    public BigDecimal getValor() {
+<span class="fc" id="L55">        return valor;</span>
+    }
+
+    public EstadoPago getEstado() {
+<span class="fc" id="L59">        return estado;</span>
+    }
+
+    public LocalDateTime getFechaValidacion() {
+<span class="nc" id="L63">        return fechaValidacion;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Estudiante.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.dominio</a> &gt; <span class="el_source">Estudiante.java</span></div><h1>Estudiante.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.dominio;
+
+import jakarta.persistence.*;
+
+/** Estudiante que se matricula. Hereda de Usuario. */
+@Entity
+@DiscriminatorValue(&quot;ESTUDIANTE&quot;)
+public class Estudiante extends Usuario {
+
+    @Column(length = 20)
+    private String codigo;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private EstadoAcademico estadoAcademico;
+
+    private int creditosAprobados;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private ProgramaAcademico programa;
+
+<span class="fc" id="L22">    protected Estudiante() {</span>
+<span class="fc" id="L23">    }</span>
+
+    public Estudiante(String idUsuario, String nombre, String correo, String contrasenaHash,
+                      String codigo, ProgramaAcademico programa, EstadoAcademico estadoAcademico) {
+<span class="fc" id="L27">        super(idUsuario, nombre, correo, contrasenaHash, Rol.ESTUDIANTE);</span>
+<span class="fc" id="L28">        this.codigo = codigo;</span>
+<span class="fc" id="L29">        this.programa = programa;</span>
+<span class="fc" id="L30">        this.estadoAcademico = estadoAcademico;</span>
+<span class="fc" id="L31">    }</span>
+
+    /** Solo un estudiante activo puede matricularse. */
+    public boolean estaHabilitado() {
+<span class="fc bfc" id="L35" title="All 2 branches covered.">        return estadoAcademico == EstadoAcademico.ACTIVO;</span>
+    }
+
+    public String getCodigo() {
+<span class="fc" id="L39">        return codigo;</span>
+    }
+
+    public EstadoAcademico getEstadoAcademico() {
+<span class="nc" id="L43">        return estadoAcademico;</span>
+    }
+
+    public int getCreditosAprobados() {
+<span class="nc" id="L47">        return creditosAprobados;</span>
+    }
+
+    public ProgramaAcademico getPrograma() {
+<span class="fc" id="L51">        return programa;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

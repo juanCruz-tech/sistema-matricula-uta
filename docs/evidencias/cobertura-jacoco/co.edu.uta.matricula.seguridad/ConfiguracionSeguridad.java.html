@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfiguracionSeguridad.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.seguridad</a> &gt; <span class="el_source">ConfiguracionSeguridad.java</span></div><h1>ConfiguracionSeguridad.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.seguridad;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+
+/**
+ * Módulo de Seguridad (componente reutilizable Spring Security, enfoque CBSE).
+ * Control de acceso por rol (RNF-04): /estudiante/** solo para estudiantes y /admin/** solo para
+ * administradores. Las contraseñas se almacenan con BCrypt y los formularios usan token CSRF.
+ */
+@Configuration
+<span class="fc" id="L16">public class ConfiguracionSeguridad {</span>
+
+    @Bean
+    public SecurityFilterChain cadenaDeFiltros(HttpSecurity http) throws Exception {
+<span class="fc" id="L20">        http</span>
+<span class="fc" id="L21">                .authorizeHttpRequests(a -&gt; a</span>
+<span class="fc" id="L22">                        .requestMatchers(&quot;/css/**&quot;, &quot;/login&quot;, &quot;/error&quot;).permitAll()</span>
+<span class="fc" id="L23">                        .requestMatchers(&quot;/estudiante/**&quot;).hasRole(&quot;ESTUDIANTE&quot;)</span>
+<span class="fc" id="L24">                        .requestMatchers(&quot;/admin/**&quot;).hasRole(&quot;ADMINISTRADOR&quot;)</span>
+<span class="fc" id="L25">                        .requestMatchers(&quot;/pasarela-simulada/**&quot;).authenticated()</span>
+<span class="fc" id="L26">                        .anyRequest().authenticated())</span>
+<span class="fc" id="L27">                .formLogin(f -&gt; f.loginPage(&quot;/login&quot;).defaultSuccessUrl(&quot;/&quot;, true).permitAll())</span>
+<span class="fc" id="L28">                .logout(l -&gt; l.logoutUrl(&quot;/logout&quot;).logoutSuccessUrl(&quot;/login?salida&quot;).permitAll())</span>
+<span class="fc" id="L29">                .exceptionHandling(e -&gt; e.accessDeniedPage(&quot;/acceso-denegado&quot;))</span>
+<span class="fc" id="L30">                .headers(h -&gt; h.frameOptions(f -&gt; f.sameOrigin()));</span>
+<span class="fc" id="L31">        return http.build();</span>
+    }
+
+    @Bean
+    public PasswordEncoder codificador() {
+<span class="fc" id="L36">        return new BCryptPasswordEncoder();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

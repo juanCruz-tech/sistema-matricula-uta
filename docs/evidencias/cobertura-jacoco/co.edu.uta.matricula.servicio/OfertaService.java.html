@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OfertaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.servicio</a> &gt; <span class="el_source">OfertaService.java</span></div><h1>OfertaService.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.servicio;
+
+import co.edu.uta.matricula.dominio.Curso;
+import co.edu.uta.matricula.dominio.Estudiante;
+import co.edu.uta.matricula.dominio.PeriodoAcademico;
+import co.edu.uta.matricula.dominio.ReglaNegocioException;
+import co.edu.uta.matricula.persistencia.ICursoRepository;
+import co.edu.uta.matricula.persistencia.IPeriodoRepository;
+import co.edu.uta.matricula.persistencia.IUsuarioRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+/** Consulta de la oferta académica del periodo abierto. */
+@Service
+@Transactional(readOnly = true)
+public class OfertaService {
+
+    private final IPeriodoRepository periodos;
+    private final ICursoRepository cursos;
+    private final IUsuarioRepository usuarios;
+
+<span class="fc" id="L24">    public OfertaService(IPeriodoRepository periodos, ICursoRepository cursos, IUsuarioRepository usuarios) {</span>
+<span class="fc" id="L25">        this.periodos = periodos;</span>
+<span class="fc" id="L26">        this.cursos = cursos;</span>
+<span class="fc" id="L27">        this.usuarios = usuarios;</span>
+<span class="fc" id="L28">    }</span>
+
+    public PeriodoAcademico periodoAbierto() {
+<span class="fc" id="L31">        return periodos.findFirstByAbiertoMatriculaTrueOrderByFechaInicioDesc()</span>
+<span class="pc" id="L32">                .orElseThrow(() -&gt; new ReglaNegocioException(&quot;No hay un periodo abierto para matrícula.&quot;));</span>
+    }
+
+    public List&lt;Curso&gt; cursosDelPeriodo(PeriodoAcademico periodo) {
+<span class="nc" id="L36">        return cursos.buscarPorPeriodo(periodo);</span>
+    }
+
+    /** Cursos del periodo abierto que pertenecen al programa del estudiante. */
+    public List&lt;Curso&gt; cursosParaEstudiante(String idUsuario) {
+<span class="nc" id="L41">        Estudiante e = usuarios.buscarEstudiante(idUsuario)</span>
+<span class="nc" id="L42">                .orElseThrow(() -&gt; new ReglaNegocioException(&quot;El usuario no es un estudiante.&quot;));</span>
+<span class="nc" id="L43">        Long programaId = e.getPrograma().getId();</span>
+<span class="nc" id="L44">        return cursos.buscarPorPeriodo(periodoAbierto()).stream()</span>
+<span class="nc" id="L45">                .filter(c -&gt; c.getAsignatura().getPrograma().getId().equals(programaId))</span>
+<span class="nc" id="L46">                .toList();</span>
+    }
+
+    /** Nombre y programa del estudiante para mostrarlos en pantalla. */
+    public String descripcionEstudiante(String idUsuario) {
+<span class="fc" id="L51">        return usuarios.buscarEstudiante(idUsuario)</span>
+<span class="fc" id="L52">                .map(e -&gt; e.getNombre() + &quot; · &quot; + e.getCodigo() + &quot; · &quot; + e.getPrograma().getNombre())</span>
+<span class="fc" id="L53">                .orElse(idUsuario);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

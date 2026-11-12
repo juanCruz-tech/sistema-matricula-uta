@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PasarelaSimulada.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.integracion.pagos</a> &gt; <span class="el_source">PasarelaSimulada.java</span></div><h1>PasarelaSimulada.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.integracion.pagos;
+
+import co.edu.uta.matricula.dominio.EstadoPago;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Pasarela de pagos simulada. Sustituye a la pasarela real de la universidad en el prototipo
+ * y en las pruebas de carga sin cambiar el contrato IPasarelaPagos (principio LSP).
+ * El &quot;pagador&quot; decide en la pantalla de la pasarela si el pago se aprueba o se rechaza.
+ * Con aprobacion-automatica=true (solo pruebas de carga) cada pago se aprueba al crearse.
+ */
+@Component
+public class PasarelaSimulada implements IPasarelaPagos {
+
+<span class="fc" id="L21">    private final Map&lt;String, Orden&gt; ordenes = new ConcurrentHashMap&lt;&gt;();</span>
+    private final boolean aprobacionAutomatica;
+
+<span class="fc" id="L24">    public PasarelaSimulada(@Value(&quot;${pasarela.simulada.aprobacion-automatica:false}&quot;) boolean aprobacionAutomatica) {</span>
+<span class="fc" id="L25">        this.aprobacionAutomatica = aprobacionAutomatica;</span>
+<span class="fc" id="L26">    }</span>
+
+    @Override
+    public String solicitarPago(String descripcion, BigDecimal valor) {
+<span class="fc" id="L30">        String referencia = &quot;PSE-SIM-&quot; + UUID.randomUUID().toString().substring(0, 8).toUpperCase();</span>
+<span class="pc bpc" id="L31" title="1 of 2 branches missed.">        EstadoPago inicial = aprobacionAutomatica ? EstadoPago.APROBADO : EstadoPago.PENDIENTE;</span>
+<span class="fc" id="L32">        ordenes.put(referencia, new Orden(descripcion, valor, inicial));</span>
+<span class="fc" id="L33">        return referencia;</span>
+    }
+
+    @Override
+    public EstadoPago verificarPago(String referencia) {
+<span class="fc" id="L38">        Orden orden = ordenes.get(referencia);</span>
+<span class="pc bpc" id="L39" title="1 of 2 branches missed.">        return orden == null ? EstadoPago.RECHAZADO : orden.estado();</span>
+    }
+
+    /** Lo que hace el usuario en la pantalla de la pasarela: aprobar o rechazar. */
+    public void responder(String referencia, boolean aprobado) {
+<span class="fc" id="L44">        ordenes.computeIfPresent(referencia, (ref, o) -&gt;</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">                new Orden(o.descripcion(), o.valor(), aprobado ? EstadoPago.APROBADO : EstadoPago.RECHAZADO));</span>
+<span class="fc" id="L46">    }</span>
+
+    public Orden consultarOrden(String referencia) {
+<span class="nc" id="L49">        return ordenes.get(referencia);</span>
+    }
+
+<span class="fc" id="L52">    public record Orden(String descripcion, BigDecimal valor, EstadoPago estado) {</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReporteService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.servicio</a> &gt; <span class="el_source">ReporteService.java</span></div><h1>ReporteService.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.servicio;
+
+import co.edu.uta.matricula.dominio.*;
+import co.edu.uta.matricula.persistencia.IFacultadRepository;
+import co.edu.uta.matricula.persistencia.IMatriculaRepository;
+import co.edu.uta.matricula.persistencia.IProgramaRepository;
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.awt.Color;
+import java.io.ByteArrayOutputStream;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/** Reportes de estudiantes matriculados por facultad y programa (RF-05). Única responsabilidad: reportes (SRP). */
+@Service
+@Transactional(readOnly = true)
+public class ReporteService {
+
+    private final IMatriculaRepository matriculas;
+    private final IFacultadRepository facultades;
+    private final IProgramaRepository programas;
+    private final OfertaService ofertaService;
+
+    public ReporteService(IMatriculaRepository matriculas, IFacultadRepository facultades,
+<span class="fc" id="L31">                          IProgramaRepository programas, OfertaService ofertaService) {</span>
+<span class="fc" id="L32">        this.matriculas = matriculas;</span>
+<span class="fc" id="L33">        this.facultades = facultades;</span>
+<span class="fc" id="L34">        this.programas = programas;</span>
+<span class="fc" id="L35">        this.ofertaService = ofertaService;</span>
+<span class="fc" id="L36">    }</span>
+
+    public Reporte generar(Long facultadId, Long programaId) {
+<span class="fc" id="L39">        PeriodoAcademico periodo = ofertaService.periodoAbierto();</span>
+<span class="fc" id="L40">        List&lt;Fila&gt; filas = matriculas.buscarConfirmadasPorPeriodo(periodo).stream()</span>
+<span class="fc bfc" id="L41" title="All 4 branches covered.">                .filter(m -&gt; facultadId == null || m.getEstudiante().getPrograma().getFacultad().getId().equals(facultadId))</span>
+<span class="pc bpc" id="L42" title="3 of 4 branches missed.">                .filter(m -&gt; programaId == null || m.getEstudiante().getPrograma().getId().equals(programaId))</span>
+<span class="fc" id="L43">                .map(m -&gt; new Fila(</span>
+<span class="fc" id="L44">                        m.getEstudiante().getPrograma().getFacultad().getNombre(),</span>
+<span class="fc" id="L45">                        m.getEstudiante().getPrograma().getNombre(),</span>
+<span class="fc" id="L46">                        m.getEstudiante().getCodigo(),</span>
+<span class="fc" id="L47">                        m.getEstudiante().getNombre(),</span>
+<span class="fc" id="L48">                        m.cursosInscritos().size(),</span>
+<span class="fc" id="L49">                        m.calcularCreditos(),</span>
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">                        m.getComprobante() == null ? &quot;&quot; : m.getComprobante().getNumero()))</span>
+<span class="fc" id="L51">                .toList();</span>
+<span class="fc" id="L52">        Map&lt;String, Long&gt; porFacultad = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L53">        filas.forEach(f -&gt; porFacultad.merge(f.facultad(), 1L, Long::sum));</span>
+<span class="fc" id="L54">        return new Reporte(periodo.getCodigo(), filas, porFacultad);</span>
+    }
+
+    public List&lt;Facultad&gt; facultades() {
+<span class="fc" id="L58">        return facultades.findAll();</span>
+    }
+
+    public List&lt;ProgramaAcademico&gt; programas() {
+<span class="fc" id="L62">        List&lt;ProgramaAcademico&gt; lista = programas.findAll();</span>
+<span class="fc" id="L63">        lista.forEach(p -&gt; p.getFacultad().getNombre());</span>
+<span class="fc" id="L64">        return lista;</span>
+    }
+
+    public byte[] exportarPdf(Reporte r) {
+<span class="fc" id="L68">        ByteArrayOutputStream salida = new ByteArrayOutputStream();</span>
+<span class="fc" id="L69">        Document doc = new Document(PageSize.LETTER.rotate(), 36, 36, 36, 36);</span>
+<span class="fc" id="L70">        PdfWriter.getInstance(doc, salida);</span>
+<span class="fc" id="L71">        doc.open();</span>
+<span class="fc" id="L72">        doc.add(new Paragraph(&quot;Reporte de estudiantes matriculados — Periodo &quot; + r.periodo(),</span>
+<span class="fc" id="L73">                FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, ComprobanteService.AZUL)));</span>
+<span class="fc" id="L74">        doc.add(new Paragraph(&quot;Total: &quot; + r.filas().size() + &quot; estudiantes con matrícula confirmada&quot;,</span>
+<span class="fc" id="L75">                FontFactory.getFont(FontFactory.HELVETICA, 10)));</span>
+<span class="fc" id="L76">        doc.add(new Paragraph(&quot; &quot;));</span>
+<span class="fc" id="L77">        PdfPTable t = new PdfPTable(new float[]{3, 3.5f, 1.6f, 3.5f, 1.2f, 1.2f, 2.6f});</span>
+<span class="fc" id="L78">        t.setWidthPercentage(100);</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        for (String h : new String[]{&quot;Facultad&quot;, &quot;Programa&quot;, &quot;Código&quot;, &quot;Estudiante&quot;, &quot;Cursos&quot;, &quot;Créditos&quot;, &quot;Comprobante&quot;}) {</span>
+<span class="fc" id="L80">            PdfPCell c = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.WHITE)));</span>
+<span class="fc" id="L81">            c.setBackgroundColor(ComprobanteService.AZUL);</span>
+<span class="fc" id="L82">            c.setPadding(4);</span>
+<span class="fc" id="L83">            t.addCell(c);</span>
+        }
+<span class="fc" id="L85">        Font f = FontFactory.getFont(FontFactory.HELVETICA, 8.5f);</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        for (Fila x : r.filas()) {</span>
+<span class="fc" id="L87">            t.addCell(new Phrase(x.facultad(), f));</span>
+<span class="fc" id="L88">            t.addCell(new Phrase(x.programa(), f));</span>
+<span class="fc" id="L89">            t.addCell(new Phrase(x.codigo(), f));</span>
+<span class="fc" id="L90">            t.addCell(new Phrase(x.estudiante(), f));</span>
+<span class="fc" id="L91">            t.addCell(new Phrase(String.valueOf(x.cursos()), f));</span>
+<span class="fc" id="L92">            t.addCell(new Phrase(String.valueOf(x.creditos()), f));</span>
+<span class="fc" id="L93">            t.addCell(new Phrase(x.comprobante(), f));</span>
+<span class="fc" id="L94">        }</span>
+<span class="fc" id="L95">        doc.add(t);</span>
+<span class="fc" id="L96">        doc.close();</span>
+<span class="fc" id="L97">        return salida.toByteArray();</span>
+    }
+
+<span class="fc" id="L100">    public record Fila(String facultad, String programa, String codigo, String estudiante,</span>
+                       int cursos, int creditos, String comprobante) {
+    }
+
+<span class="fc" id="L104">    public record Reporte(String periodo, List&lt;Fila&gt; filas, Map&lt;String, Long&gt; porFacultad) {</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Curso.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.dominio</a> &gt; <span class="el_source">Curso.java</span></div><h1>Curso.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.dominio;
+
+import jakarta.persistence.*;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Grupo de una asignatura en un periodo, con su cupo y sus franjas horarias.
+ * Invariante: 0 ≤ cuposDisponibles ≤ cupoMaximo.
+ */
+@Entity
+public class Curso {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 5)
+    private String grupo;
+
+    private int cupoMaximo;
+
+    private int cuposDisponibles;
+
+    @Column(length = 80)
+    private String docente;
+
+    @ManyToOne(optional = false, fetch = FetchType.EAGER)
+    private Asignatura asignatura;
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    private PeriodoAcademico periodo;
+
+<span class="fc" id="L36">    @ElementCollection(fetch = FetchType.EAGER)</span>
+    @CollectionTable(name = &quot;curso_franja&quot;, joinColumns = @JoinColumn(name = &quot;curso_id&quot;))
+    private List&lt;FranjaHoraria&gt; franjas = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L40">    protected Curso() {</span>
+<span class="fc" id="L41">    }</span>
+
+    public Curso(Asignatura asignatura, PeriodoAcademico periodo, String grupo, int cupoMaximo, String docente,
+<span class="fc" id="L44">                 List&lt;FranjaHoraria&gt; franjas) {</span>
+<span class="pc bpc" id="L45" title="1 of 2 branches missed.">        if (cupoMaximo &lt; 1) {</span>
+<span class="nc" id="L46">            throw new IllegalArgumentException(&quot;El cupo máximo debe ser al menos 1&quot;);</span>
+        }
+<span class="pc bpc" id="L48" title="2 of 4 branches missed.">        if (franjas == null || franjas.isEmpty()) {</span>
+<span class="nc" id="L49">            throw new IllegalArgumentException(&quot;Un curso necesita al menos una franja horaria&quot;);</span>
+        }
+<span class="fc" id="L51">        this.asignatura = asignatura;</span>
+<span class="fc" id="L52">        this.periodo = periodo;</span>
+<span class="fc" id="L53">        this.grupo = grupo;</span>
+<span class="fc" id="L54">        this.cupoMaximo = cupoMaximo;</span>
+<span class="fc" id="L55">        this.cuposDisponibles = cupoMaximo;</span>
+<span class="fc" id="L56">        this.docente = docente;</span>
+<span class="fc" id="L57">        this.franjas = new ArrayList&lt;&gt;(franjas);</span>
+<span class="fc" id="L58">    }</span>
+
+    public boolean tieneCupo() {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        return cuposDisponibles &gt; 0;</span>
+    }
+
+    /**
+     * Reserva un cupo en memoria. En producción la reserva concurrente se hace con una
+     * operación atómica en la base de datos (ICursoRepository.decrementarCupo).
+     */
+    public boolean reservarCupo() {
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (!tieneCupo()) {</span>
+<span class="fc" id="L70">            return false;</span>
+        }
+<span class="fc" id="L72">        cuposDisponibles--;</span>
+<span class="fc" id="L73">        return true;</span>
+    }
+
+    public void liberarCupo() {
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (cuposDisponibles &lt; cupoMaximo) {</span>
+<span class="fc" id="L78">            cuposDisponibles++;</span>
+        }
+<span class="fc" id="L80">    }</span>
+
+    /** Ajuste del cupo por parte del administrador, respetando los cupos ya ocupados. */
+    public void ajustarCupoMaximo(int nuevoMaximo) {
+<span class="fc" id="L84">        int ocupados = cupoMaximo - cuposDisponibles;</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        if (nuevoMaximo &lt; ocupados) {</span>
+<span class="fc" id="L86">            throw new IllegalArgumentException(</span>
+                    &quot;El nuevo cupo (&quot; + nuevoMaximo + &quot;) es menor que los cupos ya ocupados (&quot; + ocupados + &quot;)&quot;);
+        }
+<span class="fc" id="L89">        this.cupoMaximo = nuevoMaximo;</span>
+<span class="fc" id="L90">        this.cuposDisponibles = nuevoMaximo - ocupados;</span>
+<span class="fc" id="L91">    }</span>
+
+    /** Un curso se cruza con otro si alguna de sus franjas se cruza con alguna del otro. */
+    public boolean seCruzaCon(Curso otro) {
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        for (FranjaHoraria f : franjas) {</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">            for (FranjaHoraria g : otro.franjas) {</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">                if (f.seCruzaCon(g)) {</span>
+<span class="fc" id="L98">                    return true;</span>
+                }
+<span class="fc" id="L100">            }</span>
+<span class="fc" id="L101">        }</span>
+<span class="fc" id="L102">        return false;</span>
+    }
+
+    public String nombreCompleto() {
+<span class="fc" id="L106">        return asignatura.getNombre() + &quot; — Grupo &quot; + grupo;</span>
+    }
+
+    public String horarioTexto() {
+<span class="fc" id="L110">        return String.join(&quot; · &quot;, franjas.stream().map(FranjaHoraria::descripcion).toList());</span>
+    }
+
+    public Long getId() {
+<span class="fc" id="L114">        return id;</span>
+    }
+
+    public String getGrupo() {
+<span class="fc" id="L118">        return grupo;</span>
+    }
+
+    public int getCupoMaximo() {
+<span class="nc" id="L122">        return cupoMaximo;</span>
+    }
+
+    public int getCuposDisponibles() {
+<span class="fc" id="L126">        return cuposDisponibles;</span>
+    }
+
+    public String getDocente() {
+<span class="fc" id="L130">        return docente;</span>
+    }
+
+    public Asignatura getAsignatura() {
+<span class="fc" id="L134">        return asignatura;</span>
+    }
+
+    public PeriodoAcademico getPeriodo() {
+<span class="fc" id="L138">        return periodo;</span>
+    }
+
+    public List&lt;FranjaHoraria&gt; getFranjas() {
+<span class="fc" id="L142">        return Collections.unmodifiableList(franjas);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DatosDemo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.config</a> &gt; <span class="el_source">DatosDemo.java</span></div><h1>DatosDemo.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.config;
+
+import co.edu.uta.matricula.dominio.*;
+import co.edu.uta.matricula.integracion.pagos.PasarelaSimulada;
+import co.edu.uta.matricula.persistencia.*;
+import co.edu.uta.matricula.servicio.MatriculaService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import static co.edu.uta.matricula.dominio.DiaSemana.*;
+
+/**
+ * Carga datos de prueba realistas pero ficticios (sin información personal real):
+ * 3 facultades, 4 programas, 18 cursos del periodo 2027-1, 7 estudiantes y 1 administrador.
+ * Cuatro estudiantes quedan con matrícula confirmada para que el reporte tenga datos.
+ */
+@Component
+@ConditionalOnProperty(name = &quot;matricula.datos-demo&quot;, havingValue = &quot;true&quot;, matchIfMissing = true)
+public class DatosDemo implements CommandLineRunner {
+
+    public static final String CLAVE_ESTUDIANTES = &quot;Uta2027*&quot;;
+    public static final String CLAVE_ADMIN = &quot;Admin2027*&quot;;
+<span class="fc" id="L32">    private static final Logger log = LoggerFactory.getLogger(DatosDemo.class);</span>
+
+    private final IFacultadRepository facultades;
+    private final IProgramaRepository programas;
+    private final IAsignaturaRepository asignaturas;
+    private final IPeriodoRepository periodos;
+    private final ICursoRepository cursos;
+    private final IUsuarioRepository usuarios;
+    private final PasswordEncoder codificador;
+    private final MatriculaService matriculaService;
+    private final PasarelaSimulada pasarela;
+
+    public DatosDemo(IFacultadRepository facultades, IProgramaRepository programas, IAsignaturaRepository asignaturas,
+                     IPeriodoRepository periodos, ICursoRepository cursos, IUsuarioRepository usuarios,
+<span class="fc" id="L46">                     PasswordEncoder codificador, MatriculaService matriculaService, PasarelaSimulada pasarela) {</span>
+<span class="fc" id="L47">        this.facultades = facultades;</span>
+<span class="fc" id="L48">        this.programas = programas;</span>
+<span class="fc" id="L49">        this.asignaturas = asignaturas;</span>
+<span class="fc" id="L50">        this.periodos = periodos;</span>
+<span class="fc" id="L51">        this.cursos = cursos;</span>
+<span class="fc" id="L52">        this.usuarios = usuarios;</span>
+<span class="fc" id="L53">        this.codificador = codificador;</span>
+<span class="fc" id="L54">        this.matriculaService = matriculaService;</span>
+<span class="fc" id="L55">        this.pasarela = pasarela;</span>
+<span class="fc" id="L56">    }</span>
+
+    @Override
+    public void run(String... args) {
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">        if (usuarios.count() &gt; 0) {</span>
+<span class="nc" id="L61">            return;</span>
+        }
+<span class="fc" id="L63">        Facultad ing = facultades.save(new Facultad(&quot;ING&quot;, &quot;Facultad de Ingeniería&quot;));</span>
+<span class="fc" id="L64">        Facultad adm = facultades.save(new Facultad(&quot;ADM&quot;, &quot;Facultad de Ciencias Administrativas&quot;));</span>
+<span class="fc" id="L65">        Facultad sal = facultades.save(new Facultad(&quot;SAL&quot;, &quot;Facultad de Ciencias de la Salud&quot;));</span>
+
+<span class="fc" id="L67">        ProgramaAcademico isis = programas.save(new ProgramaAcademico(&quot;ISIS&quot;, &quot;Ingeniería de Sistemas&quot;, ing));</span>
+<span class="fc" id="L68">        ProgramaAcademico iind = programas.save(new ProgramaAcademico(&quot;IIND&quot;, &quot;Ingeniería Industrial&quot;, ing));</span>
+<span class="fc" id="L69">        ProgramaAcademico adem = programas.save(new ProgramaAcademico(&quot;ADEM&quot;, &quot;Administración de Empresas&quot;, adm));</span>
+<span class="fc" id="L70">        ProgramaAcademico enf = programas.save(new ProgramaAcademico(&quot;ENF&quot;, &quot;Enfermería&quot;, sal));</span>
+
+<span class="fc" id="L72">        PeriodoAcademico p = periodos.save(new PeriodoAcademico(&quot;2027-1&quot;,</span>
+<span class="fc" id="L73">                LocalDate.of(2027, 1, 25), LocalDate.of(2027, 5, 29), true));</span>
+
+        // Ingeniería de Sistemas
+<span class="fc" id="L76">        Asignatura soft = asig(&quot;IS-301&quot;, &quot;Ingeniería de Software&quot;, 3, isis);</span>
+<span class="fc" id="L77">        curso(soft, p, &quot;1&quot;, 30, &quot;M. Castaño&quot;, f(LUNES, 7, 9, &quot;B-201&quot;), f(MIERCOLES, 7, 9, &quot;B-201&quot;));</span>
+<span class="fc" id="L78">        curso(soft, p, &quot;2&quot;, 30, &quot;M. Castaño&quot;, f(MARTES, 18, 20, &quot;B-202&quot;), f(JUEVES, 18, 20, &quot;B-202&quot;));</span>
+<span class="fc" id="L79">        Asignatura bd = asig(&quot;IS-302&quot;, &quot;Bases de Datos&quot;, 3, isis);</span>
+<span class="fc" id="L80">        curso(bd, p, &quot;1&quot;, 25, &quot;J. Ospina&quot;, f(LUNES, 9, 11, &quot;LAB-3&quot;), f(MIERCOLES, 9, 11, &quot;LAB-3&quot;));</span>
+<span class="fc" id="L81">        Asignatura ed = asig(&quot;IS-205&quot;, &quot;Estructuras de Datos&quot;, 3, isis);</span>
+<span class="fc" id="L82">        curso(ed, p, &quot;1&quot;, 25, &quot;L. Arango&quot;, f(LUNES, 10, 12, &quot;LAB-2&quot;), f(JUEVES, 10, 12, &quot;LAB-2&quot;));</span>
+<span class="fc" id="L83">        curso(ed, p, &quot;2&quot;, 25, &quot;L. Arango&quot;, f(MARTES, 14, 16, &quot;LAB-2&quot;), f(VIERNES, 14, 16, &quot;LAB-2&quot;));</span>
+<span class="fc" id="L84">        Asignatura calc = asig(&quot;CB-210&quot;, &quot;Cálculo Integral&quot;, 4, isis);</span>
+<span class="fc" id="L85">        curso(calc, p, &quot;1&quot;, 35, &quot;R. Salazar&quot;, f(MARTES, 7, 9, &quot;A-105&quot;), f(JUEVES, 7, 9, &quot;A-105&quot;), f(VIERNES, 7, 9, &quot;A-105&quot;));</span>
+<span class="fc" id="L86">        Asignatura fis = asig(&quot;CB-220&quot;, &quot;Física Mecánica&quot;, 4, isis);</span>
+<span class="fc" id="L87">        curso(fis, p, &quot;1&quot;, 30, &quot;P. Navarro&quot;, f(MARTES, 9, 11, &quot;LAB-F&quot;), f(VIERNES, 9, 11, &quot;LAB-F&quot;));</span>
+<span class="fc" id="L88">        Asignatura ia = asig(&quot;IS-390&quot;, &quot;Electiva: Inteligencia Artificial&quot;, 2, isis);</span>
+<span class="fc" id="L89">        curso(ia, p, &quot;1&quot;, 1, &quot;S. Quintero&quot;, f(SABADO, 8, 11, &quot;B-301&quot;));</span>
+<span class="fc" id="L90">        Asignatura ingles = asig(&quot;HU-103&quot;, &quot;Inglés III&quot;, 2, isis);</span>
+<span class="fc" id="L91">        curso(ingles, p, &quot;1&quot;, 30, &quot;K. Bernal&quot;, f(MIERCOLES, 14, 16, &quot;C-101&quot;));</span>
+
+        // Ingeniería Industrial
+<span class="fc" id="L94">        Asignatura io = asig(&quot;II-210&quot;, &quot;Investigación de Operaciones&quot;, 3, iind);</span>
+<span class="fc" id="L95">        curso(io, p, &quot;1&quot;, 30, &quot;A. Montoya&quot;, f(LUNES, 14, 16, &quot;A-201&quot;), f(MIERCOLES, 16, 18, &quot;A-201&quot;));</span>
+<span class="fc" id="L96">        Asignatura proc = asig(&quot;II-220&quot;, &quot;Procesos Industriales&quot;, 3, iind);</span>
+<span class="fc" id="L97">        curso(proc, p, &quot;1&quot;, 30, &quot;C. Vélez&quot;, f(MARTES, 16, 18, &quot;LAB-P&quot;), f(JUEVES, 16, 18, &quot;LAB-P&quot;));</span>
+<span class="fc" id="L98">        Asignatura est = asig(&quot;CB-230&quot;, &quot;Estadística I&quot;, 3, iind);</span>
+<span class="fc" id="L99">        curso(est, p, &quot;1&quot;, 35, &quot;N. Prieto&quot;, f(VIERNES, 10, 12, &quot;A-110&quot;));</span>
+
+        // Administración de Empresas
+<span class="fc" id="L102">        Asignatura fa = asig(&quot;AD-101&quot;, &quot;Fundamentos de Administración&quot;, 3, adem);</span>
+<span class="fc" id="L103">        curso(fa, p, &quot;1&quot;, 40, &quot;G. Lozano&quot;, f(LUNES, 7, 9, &quot;D-101&quot;), f(MIERCOLES, 7, 9, &quot;D-101&quot;));</span>
+<span class="fc" id="L104">        Asignatura cc = asig(&quot;AD-205&quot;, &quot;Contabilidad de Costos&quot;, 3, adem);</span>
+<span class="fc" id="L105">        curso(cc, p, &quot;1&quot;, 35, &quot;E. Cardona&quot;, f(MARTES, 9, 11, &quot;D-202&quot;), f(JUEVES, 9, 11, &quot;D-202&quot;));</span>
+<span class="fc" id="L106">        Asignatura mer = asig(&quot;AD-210&quot;, &quot;Mercadeo&quot;, 3, adem);</span>
+<span class="fc" id="L107">        curso(mer, p, &quot;1&quot;, 35, &quot;V. Ríos&quot;, f(VIERNES, 7, 10, &quot;D-105&quot;));</span>
+
+        // Enfermería
+<span class="fc" id="L110">        Asignatura ana = asig(&quot;EN-110&quot;, &quot;Anatomía&quot;, 4, enf);</span>
+<span class="fc" id="L111">        curso(ana, p, &quot;1&quot;, 30, &quot;H. Duarte&quot;, f(LUNES, 7, 10, &quot;S-101&quot;), f(MIERCOLES, 7, 10, &quot;S-101&quot;));</span>
+<span class="fc" id="L112">        Asignatura bio = asig(&quot;EN-120&quot;, &quot;Bioquímica&quot;, 3, enf);</span>
+<span class="fc" id="L113">        curso(bio, p, &quot;1&quot;, 30, &quot;F. Acosta&quot;, f(MARTES, 7, 9, &quot;S-LAB&quot;), f(JUEVES, 7, 9, &quot;S-LAB&quot;));</span>
+<span class="fc" id="L114">        Asignatura cui = asig(&quot;EN-130&quot;, &quot;Cuidado Básico&quot;, 3, enf);</span>
+<span class="fc" id="L115">        curso(cui, p, &quot;1&quot;, 30, &quot;T. Vargas&quot;, f(VIERNES, 8, 11, &quot;S-201&quot;));</span>
+
+<span class="fc" id="L117">        String claveEst = codificador.encode(CLAVE_ESTUDIANTES);</span>
+<span class="fc" id="L118">        estudiante(&quot;laura.gomez&quot;, &quot;Laura Gómez Ruiz&quot;, &quot;20231045&quot;, isis, EstadoAcademico.ACTIVO, claveEst);</span>
+<span class="fc" id="L119">        estudiante(&quot;andres.rojas&quot;, &quot;Andrés Rojas Peña&quot;, &quot;20231102&quot;, isis, EstadoAcademico.ACTIVO, claveEst);</span>
+<span class="fc" id="L120">        estudiante(&quot;sofia.castro&quot;, &quot;Sofía Castro Gil&quot;, &quot;20212088&quot;, isis, EstadoAcademico.ACTIVO, claveEst);</span>
+<span class="fc" id="L121">        estudiante(&quot;mateo.diaz&quot;, &quot;Mateo Díaz León&quot;, &quot;20221077&quot;, iind, EstadoAcademico.ACTIVO, claveEst);</span>
+<span class="fc" id="L122">        estudiante(&quot;camila.torres&quot;, &quot;Camila Torres Vega&quot;, &quot;20222011&quot;, adem, EstadoAcademico.ACTIVO, claveEst);</span>
+<span class="fc" id="L123">        estudiante(&quot;valentina.ortiz&quot;, &quot;Valentina Ortiz Mora&quot;, &quot;20232031&quot;, enf, EstadoAcademico.ACTIVO, claveEst);</span>
+<span class="fc" id="L124">        estudiante(&quot;daniel.mejia&quot;, &quot;Daniel Mejía Soto&quot;, &quot;20201050&quot;, isis, EstadoAcademico.INACTIVO, claveEst);</span>
+<span class="fc" id="L125">        usuarios.save(new AdministradorMatricula(&quot;admin.registro&quot;, &quot;Coordinación de Registro Académico&quot;,</span>
+<span class="fc" id="L126">                &quot;registro@uta.edu.co&quot;, codificador.encode(CLAVE_ADMIN), &quot;Registro Académico&quot;, &quot;Coordinador(a)&quot;));</span>
+
+        // Matrículas ya confirmadas para que el reporte (RF-05) tenga datos
+<span class="fc" id="L129">        List&lt;Curso&gt; todos = cursos.buscarPorPeriodo(p);</span>
+<span class="fc" id="L130">        confirmar(&quot;sofia.castro&quot;, todos, &quot;Ingeniería de Software&quot;, &quot;2&quot;, &quot;Cálculo Integral&quot;, &quot;1&quot;, &quot;Inglés III&quot;, &quot;1&quot;);</span>
+<span class="fc" id="L131">        confirmar(&quot;mateo.diaz&quot;, todos, &quot;Investigación de Operaciones&quot;, &quot;1&quot;, &quot;Procesos Industriales&quot;, &quot;1&quot;, &quot;Estadística I&quot;, &quot;1&quot;);</span>
+<span class="fc" id="L132">        confirmar(&quot;camila.torres&quot;, todos, &quot;Fundamentos de Administración&quot;, &quot;1&quot;, &quot;Contabilidad de Costos&quot;, &quot;1&quot;, &quot;Mercadeo&quot;, &quot;1&quot;);</span>
+<span class="fc" id="L133">        confirmar(&quot;valentina.ortiz&quot;, todos, &quot;Anatomía&quot;, &quot;1&quot;, &quot;Bioquímica&quot;, &quot;1&quot;, &quot;Cuidado Básico&quot;, &quot;1&quot;);</span>
+<span class="fc" id="L134">        log.info(&quot;Datos de demostración cargados: {} cursos, {} usuarios&quot;, todos.size(), usuarios.count());</span>
+<span class="fc" id="L135">    }</span>
+
+    private Asignatura asig(String codigo, String nombre, int creditos, ProgramaAcademico programa) {
+<span class="fc" id="L138">        return asignaturas.save(new Asignatura(codigo, nombre, creditos, programa));</span>
+    }
+
+    private void curso(Asignatura a, PeriodoAcademico p, String grupo, int cupo, String docente, FranjaHoraria... franjas) {
+<span class="fc" id="L142">        cursos.save(new Curso(a, p, grupo, cupo, docente, List.of(franjas)));</span>
+<span class="fc" id="L143">    }</span>
+
+    private static FranjaHoraria f(DiaSemana dia, int desde, int hasta, String aula) {
+<span class="fc" id="L146">        return new FranjaHoraria(dia, LocalTime.of(desde, 0), LocalTime.of(hasta, 0), aula);</span>
+    }
+
+    private void estudiante(String usuario, String nombre, String codigo, ProgramaAcademico programa,
+                            EstadoAcademico estado, String hash) {
+<span class="fc" id="L151">        String correo = usuario + &quot;@estudiantes.uta.edu.co&quot;;</span>
+<span class="fc" id="L152">        usuarios.save(new Estudiante(usuario, nombre, correo, hash, codigo, programa, estado));</span>
+<span class="fc" id="L153">    }</span>
+
+    private void confirmar(String usuario, List&lt;Curso&gt; todos, String... pares) {
+<span class="fc" id="L156">        List&lt;Long&gt; ids = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        for (int i = 0; i &lt; pares.length; i += 2) {</span>
+<span class="fc" id="L158">            String nombre = pares[i];</span>
+<span class="fc" id="L159">            String grupo = pares[i + 1];</span>
+<span class="fc bfc" id="L160" title="All 4 branches covered.">            todos.stream().filter(c -&gt; c.getAsignatura().getNombre().equals(nombre) &amp;&amp; c.getGrupo().equals(grupo))</span>
+<span class="fc" id="L161">                    .findFirst().ifPresent(c -&gt; ids.add(c.getId()));</span>
+        }
+<span class="fc" id="L163">        Matricula m = matriculaService.registrarMatricula(usuario, ids);</span>
+<span class="fc" id="L164">        pasarela.responder(m.getPago().getReferencia(), true);</span>
+<span class="fc" id="L165">        matriculaService.confirmarPago(usuario, m.getId());</span>
+<span class="fc" id="L166">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

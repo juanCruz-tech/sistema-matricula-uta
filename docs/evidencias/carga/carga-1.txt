@@ -1,0 +1,8 @@
+===== CP-07 · Prueba de carga (RNF-02) =====
+Usuarios concurrentes: 1 | Procesadores: 2 | Duración total de la ráfaga: 167 ms
+Resultado: 1 confirmadas, 0 rechazadas por falta de cupo, 0 errores | Sobrecupo detectado: no
+Paso                          promedio   p95       máximo   (ms)
+Consultar oferta                  58.0       58       58
+Registrar matrícula               70.0       70       70
+Confirmar pago                    37.0       37       37
+Transacción (registro+pago)      107.0      107      107

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.presentacion</a> &gt; <span class="el_source">AdminController.java</span></div><h1>AdminController.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.presentacion;
+
+import co.edu.uta.matricula.dominio.Curso;
+import co.edu.uta.matricula.dominio.PeriodoAcademico;
+import co.edu.uta.matricula.dominio.ReglaNegocioException;
+import co.edu.uta.matricula.servicio.CupoService;
+import co.edu.uta.matricula.servicio.OfertaService;
+import co.edu.uta.matricula.servicio.ReporteService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.List;
+
+/** Controlador MVC del administrador de matrícula: cupos y reportes (RF-03, RF-05). */
+@Controller
+@RequestMapping(&quot;/admin&quot;)
+public class AdminController {
+
+    private final OfertaService ofertaService;
+    private final CupoService cupoService;
+    private final ReporteService reporteService;
+
+<span class="fc" id="L28">    public AdminController(OfertaService ofertaService, CupoService cupoService, ReporteService reporteService) {</span>
+<span class="fc" id="L29">        this.ofertaService = ofertaService;</span>
+<span class="fc" id="L30">        this.cupoService = cupoService;</span>
+<span class="fc" id="L31">        this.reporteService = reporteService;</span>
+<span class="fc" id="L32">    }</span>
+
+    @GetMapping(&quot;/cursos&quot;)
+    public String cursos(Model model) {
+<span class="nc" id="L36">        PeriodoAcademico periodo = ofertaService.periodoAbierto();</span>
+<span class="nc" id="L37">        List&lt;Curso&gt; cursos = ofertaService.cursosDelPeriodo(periodo);</span>
+<span class="nc" id="L38">        model.addAttribute(&quot;periodo&quot;, periodo);</span>
+<span class="nc" id="L39">        model.addAttribute(&quot;cursos&quot;, cursos);</span>
+<span class="nc" id="L40">        model.addAttribute(&quot;totalCupos&quot;, cursos.stream().mapToInt(Curso::getCupoMaximo).sum());</span>
+<span class="nc" id="L41">        model.addAttribute(&quot;ocupados&quot;, cursos.stream().mapToInt(c -&gt; c.getCupoMaximo() - c.getCuposDisponibles()).sum());</span>
+<span class="nc" id="L42">        return &quot;admin/cursos&quot;;</span>
+    }
+
+    @PostMapping(&quot;/cursos/{id}/cupo&quot;)
+    public String ajustarCupo(@PathVariable Long id, @RequestParam int cupoMaximo, RedirectAttributes flash) {
+        try {
+<span class="nc" id="L48">            Curso c = cupoService.gestionarCupo(id, cupoMaximo);</span>
+<span class="nc" id="L49">            flash.addFlashAttribute(&quot;ok&quot;, &quot;Cupo de &quot; + c.nombreCompleto() + &quot; actualizado a &quot; + c.getCupoMaximo() + &quot;.&quot;);</span>
+<span class="nc" id="L50">        } catch (ReglaNegocioException e) {</span>
+<span class="nc" id="L51">            flash.addFlashAttribute(&quot;error&quot;, e.getMessage());</span>
+<span class="nc" id="L52">        }</span>
+<span class="nc" id="L53">        return &quot;redirect:/admin/cursos&quot;;</span>
+    }
+
+    @GetMapping(&quot;/reportes&quot;)
+    public String reportes(@RequestParam(required = false) Long facultadId,
+                           @RequestParam(required = false) Long programaId, Model model) {
+<span class="fc" id="L59">        long inicio = System.nanoTime();</span>
+<span class="fc" id="L60">        ReporteService.Reporte reporte = reporteService.generar(facultadId, programaId);</span>
+<span class="fc" id="L61">        model.addAttribute(&quot;ms&quot;, (System.nanoTime() - inicio) / 1_000_000);</span>
+<span class="fc" id="L62">        model.addAttribute(&quot;reporte&quot;, reporte);</span>
+<span class="fc" id="L63">        model.addAttribute(&quot;facultades&quot;, reporteService.facultades());</span>
+<span class="fc" id="L64">        model.addAttribute(&quot;programas&quot;, reporteService.programas());</span>
+<span class="fc" id="L65">        model.addAttribute(&quot;facultadId&quot;, facultadId);</span>
+<span class="fc" id="L66">        model.addAttribute(&quot;programaId&quot;, programaId);</span>
+<span class="fc" id="L67">        return &quot;admin/reportes&quot;;</span>
+    }
+
+    @GetMapping(&quot;/reportes.pdf&quot;)
+    public ResponseEntity&lt;byte[]&gt; reportePdf(@RequestParam(required = false) Long facultadId,
+                                             @RequestParam(required = false) Long programaId) {
+<span class="fc" id="L73">        ReporteService.Reporte reporte = reporteService.generar(facultadId, programaId);</span>
+<span class="fc" id="L74">        return ResponseEntity.ok()</span>
+<span class="fc" id="L75">                .contentType(MediaType.APPLICATION_PDF)</span>
+<span class="fc" id="L76">                .header(HttpHeaders.CONTENT_DISPOSITION, &quot;inline; filename=\&quot;reporte-matricula-&quot; + reporte.periodo() + &quot;.pdf\&quot;&quot;)</span>
+<span class="fc" id="L77">                .body(reporteService.exportarPdf(reporte));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,16 @@
+-------------------------------------------------------------------------------
+Test set: co.edu.uta.matricula.carga.CP07CargaTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 49.78 s <<< FAILURE! -- in co.edu.uta.matricula.carga.CP07CargaTest
+co.edu.uta.matricula.carga.CP07CargaTest.cargaConcurrente -- Time elapsed: 43.47 s <<< FAILURE!
+java.lang.AssertionError: 
+[tiempo promedio de la transacción] 
+Expecting actual:
+  3961.854
+to be less than:
+  3000.0 
+	at co.edu.uta.matricula.carga.CP07CargaTest.cargaConcurrente(CP07CargaTest.java:143)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+

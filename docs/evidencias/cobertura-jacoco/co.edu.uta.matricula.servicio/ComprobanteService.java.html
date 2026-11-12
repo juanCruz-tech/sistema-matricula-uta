@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ComprobanteService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sistema de Matrícula UTA</a> &gt; <a href="index.source.html" class="el_package">co.edu.uta.matricula.servicio</a> &gt; <span class="el_source">ComprobanteService.java</span></div><h1>ComprobanteService.java</h1><pre class="source lang-java linenums">package co.edu.uta.matricula.servicio;
+
+import co.edu.uta.matricula.dominio.Curso;
+import co.edu.uta.matricula.dominio.EstadoMatricula;
+import co.edu.uta.matricula.dominio.Matricula;
+import co.edu.uta.matricula.dominio.ReglaNegocioException;
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+import org.springframework.stereotype.Service;
+
+import java.awt.Color;
+import java.io.ByteArrayOutputStream;
+import java.text.NumberFormat;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+
+/** Genera el comprobante de matrícula en PDF con la librería reutilizable OpenPDF (RF-01). */
+@Service
+<span class="fc" id="L21">public class ComprobanteService {</span>
+
+<span class="fc" id="L23">    static final Color AZUL = new Color(0x12, 0x28, 0x4A);</span>
+<span class="fc" id="L24">    private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern(&quot;dd/MM/yyyy HH:mm&quot;);</span>
+
+    public byte[] generarPdf(Matricula m) {
+<span class="pc bpc" id="L27" title="2 of 4 branches missed.">        if (m.getEstado() != EstadoMatricula.CONFIRMADA || m.getComprobante() == null) {</span>
+<span class="nc" id="L28">            throw new ReglaNegocioException(&quot;El comprobante solo existe para matrículas confirmadas.&quot;);</span>
+        }
+<span class="fc" id="L30">        ByteArrayOutputStream salida = new ByteArrayOutputStream();</span>
+<span class="fc" id="L31">        Document doc = new Document(PageSize.LETTER, 50, 50, 50, 50);</span>
+<span class="fc" id="L32">        PdfWriter.getInstance(doc, salida);</span>
+<span class="fc" id="L33">        doc.open();</span>
+
+<span class="fc" id="L35">        Font titulo = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16, AZUL);</span>
+<span class="fc" id="L36">        Font normal = FontFactory.getFont(FontFactory.HELVETICA, 10);</span>
+<span class="fc" id="L37">        Font negrita = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);</span>
+
+<span class="fc" id="L39">        doc.add(new Paragraph(&quot;Universidad Tecnológica de los Andes&quot;, titulo));</span>
+<span class="fc" id="L40">        doc.add(new Paragraph(&quot;Comprobante de matrícula — Periodo &quot; + m.getPeriodo().getCodigo(), negrita));</span>
+<span class="fc" id="L41">        doc.add(new Paragraph(&quot; &quot;));</span>
+<span class="fc" id="L42">        doc.add(new Paragraph(&quot;Número: &quot; + m.getComprobante().getNumero(), normal));</span>
+<span class="fc" id="L43">        doc.add(new Paragraph(&quot;Fecha de emisión: &quot; + m.getComprobante().getFechaEmision().format(FECHA), normal));</span>
+<span class="fc" id="L44">        doc.add(new Paragraph(&quot;Estudiante: &quot; + m.getEstudiante().getNombre() + &quot; (código &quot; + m.getEstudiante().getCodigo() + &quot;)&quot;, normal));</span>
+<span class="fc" id="L45">        doc.add(new Paragraph(&quot;Programa: &quot; + m.getEstudiante().getPrograma().getNombre(), normal));</span>
+<span class="fc" id="L46">        doc.add(new Paragraph(&quot;Referencia de pago: &quot; + m.getPago().getReferencia(), normal));</span>
+<span class="fc" id="L47">        doc.add(new Paragraph(&quot; &quot;));</span>
+
+<span class="fc" id="L49">        PdfPTable tabla = new PdfPTable(new float[]{4.5f, 1.2f, 1.2f, 4.5f});</span>
+<span class="fc" id="L50">        tabla.setWidthPercentage(100);</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        for (String h : new String[]{&quot;Asignatura&quot;, &quot;Grupo&quot;, &quot;Créditos&quot;, &quot;Horario&quot;}) {</span>
+<span class="fc" id="L52">            PdfPCell c = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.WHITE)));</span>
+<span class="fc" id="L53">            c.setBackgroundColor(AZUL);</span>
+<span class="fc" id="L54">            c.setPadding(5);</span>
+<span class="fc" id="L55">            tabla.addCell(c);</span>
+        }
+<span class="fc" id="L57">        Font celda = FontFactory.getFont(FontFactory.HELVETICA, 9);</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        for (Curso c : m.cursosInscritos()) {</span>
+<span class="fc" id="L59">            tabla.addCell(new Phrase(c.getAsignatura().getNombre(), celda));</span>
+<span class="fc" id="L60">            tabla.addCell(new Phrase(c.getGrupo(), celda));</span>
+<span class="fc" id="L61">            tabla.addCell(new Phrase(String.valueOf(c.getAsignatura().getCreditos()), celda));</span>
+<span class="fc" id="L62">            tabla.addCell(new Phrase(c.horarioTexto(), celda));</span>
+<span class="fc" id="L63">        }</span>
+<span class="fc" id="L64">        doc.add(tabla);</span>
+<span class="fc" id="L65">        doc.add(new Paragraph(&quot; &quot;));</span>
+<span class="fc" id="L66">        NumberFormat cop = NumberFormat.getCurrencyInstance(new Locale(&quot;es&quot;, &quot;CO&quot;));</span>
+<span class="fc" id="L67">        doc.add(new Paragraph(&quot;Total de créditos: &quot; + m.calcularCreditos(), negrita));</span>
+<span class="fc" id="L68">        doc.add(new Paragraph(&quot;Valor pagado: &quot; + cop.format(m.getPago().getValor()), negrita));</span>
+<span class="fc" id="L69">        doc.add(new Paragraph(&quot; &quot;));</span>
+<span class="fc" id="L70">        doc.add(new Paragraph(&quot;Código de verificación: &quot; + m.getComprobante().getCodigoVerificacion(), normal));</span>
+<span class="fc" id="L71">        doc.add(new Paragraph(&quot;Documento generado por el prototipo académico del Sistema de Matrícula UTA. Datos de prueba ficticios.&quot;,</span>
+<span class="fc" id="L72">                FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 8, Color.GRAY)));</span>
+<span class="fc" id="L73">        doc.close();</span>
+<span class="fc" id="L74">        return salida.toByteArray();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
